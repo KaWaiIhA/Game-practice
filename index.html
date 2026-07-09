@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Balbon Flip</title>
+<style>
+  :root{
+    --bg1:#0b0e1a;
+    --bg2:#141a2e;
+    --card:#1e2743;
+    --card-edge:#3a4a7a;
+    --accent:#ffd23f;
+    --accent2:#ff5f7e;
+    --text:#eef1ff;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;
+    min-height:100%;
+    background:radial-gradient(circle at 50% 0%, var(--bg2), var(--bg1) 70%);
+    font-family:'Segoe UI', system-ui, sans-serif;
+    color:var(--text);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:32px 16px 60px;
+    overflow-x:hidden;
+    transition:background 0.15s;
+  }
+
+  h1{
+    font-size:clamp(28px, 6vw, 44px);
+    margin:0 0 4px;
+    letter-spacing:1px;
+    text-shadow:0 0 18px rgba(255,210,63,0.35);
+  }
+  p.sub{
+    color:#9aa4cc;
+    margin:0 0 26px;
+    font-size:14px;
+    text-align:center;
+    max-width:420px;
+  }
+
+  .controls{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    margin-bottom:24px;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  .btn{
+    background:var(--card);
+    border:1px solid var(--card-edge);
+    color:var(--text);
+    padding:10px 18px;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:14px;
+    font-weight:600;
+    transition:transform 0.12s, background 0.12s;
+  }
+  .btn:hover{ background:#26305a; transform:translateY(-1px); }
+  .btn:active{ transform:translateY(0); }
+
+  #status{
+    font-size:13px;
+    color:#7c88b8;
+    margin-bottom:18px;
+    min-height:16px;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(5, minmax(56px, 84px));
+    gap:12px;
+    perspective:800px;
+  }
+
+  .card{
+    position:relative;
+    width:100%;
+    aspect-ratio:1/1;
+    cursor:pointer;
+    transform-style:preserve-3d;
+    transition:transform 0.45s cubic-bezier(.2,.9,.3,1.3);
+  }
+  .card.flipped{ transform:rotateY(180deg); cursor:default; }
+
+  .face{
+    position:absolute;
+    inset:0;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:28px;
+    backface-visibility:hidden;
+    border:1px solid var(--card-edge);
+  }
+  .face.back{
+    background:linear-gradient(145deg,#25305a,#171e38);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.03), 0 4px 10px rgba(0,0,0,0.4);
+  }
+  .face.back::after{
+    content:"?";
+    color:#4a5990;
+    font-weight:700;
+    font-size:22px;
+  }
+  .face.front{
+    background:linear-gradient(145deg,#2a1533,#150a1c);
+    transform:rotateY(180deg);
+    box-shadow:0 0 16px rgba(255,95,126,0.25);
+  }
+
+  /* disco flicker overlay */
+  .disco-layer{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    opacity:0;
+    z-index:20;
+    mix-blend-mode:screen;
+  }
+  .disco-layer.on{
+    opacity:1;
+    animation:flick 0.12s steps(1) infinite;
+  }
+  @keyframes flick{
+    0%   { background:#ff2d55; }
+    16%  { background:#ffd23f; }
+    33%  { background:#33e0ff; }
+    50%  { background:#7cff5c; }
+    66%  { background:#ff5cf0; }
+    83%  { background:#ff8a00; }
+    100% { background:#ff2d55; }
+  }
+
+  body.discoing{
+    animation:bgshake 0.35s ease-in-out infinite;
+  }
+  @keyframes bgshake{
+    0%,100%{ filter:none; }
+    50%{ filter:saturate(1.6) brightness(1.15); }
+  }
+
+  #message{
+    position:fixed;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:30;
+    pointer-events:none;
+    opacity:0;
+  }
+  #message.show{
+    opacity:1;
+    animation:pop 0.5s cubic-bezier(.2,1.4,.4,1);
+  }
+  @keyframes pop{
+    0%{ transform:scale(0.3) rotate(-8deg); opacity:0; }
+    60%{ transform:scale(1.15) rotate(3deg); opacity:1; }
+    100%{ transform:scale(1) rotate(0deg); opacity:1; }
+  }
+  #message span{
+    font-size:clamp(32px, 9vw, 84px);
+    font-weight:900;
+    text-align:center;
+    padding:0 20px;
+    background:linear-gradient(90deg,#ff2d55,#ffd23f,#33e0ff,#ff5cf0);
+    background-size:300% 100%;
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    animation:gradientmove 0.6s linear infinite;
+    text-shadow:0 0 30px rgba(255,255,255,0.15);
+  }
+  @keyframes gradientmove{
+    0%{ background-position:0% 0; }
+    100%{ background-position:300% 0; }
+  }
+
+  #resetWrap{
+    margin-top:26px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Balbon Flip</h1>
+<p class="sub">Flip 6 cards. Something is going to happen.</p>
+
+<div class="controls">
+  <button class="btn" id="resetBtn">Reset</button>
+</div>
+<div id="status">0 / 6 flipped</div>
+
+<div class="grid" id="grid"></div>
+
+<div id="resetWrap"></div>
+
+<div class="disco-layer" id="discoLayer"></div>
+<div id="message"><span>HULIIIIII KA BALBON</span></div>
+
+<!--
+  PUT YOUR MUSIC HERE:
+  Option A (simplest): put an mp3 file named "music.mp3" in the same folder
+  as this HTML file. The line below already points to it.
+
+  Option B (fully self-contained, no separate file needed): convert your
+  mp3 to base64 and paste it into the src, like:
+  <audio id="player" loop src="data:audio/mpeg;base64,PASTE_BASE64_HERE"></audio>
+-->
+<audio id="player" loop src="music.mp3"></audio>
+
+<script>
+  const TOTAL_CARDS = 20;
+  const TRIGGER_AT = 6;
+
+  const grid = document.getElementById('grid');
+  const status = document.getElementById('status');
+  const discoLayer = document.getElementById('discoLayer');
+  const message = document.getElementById('message');
+  const player = document.getElementById('player');
+  const resetBtn = document.getElementById('resetBtn');
+
+  let flippedCount = 0;
+  let triggered = false;
+
+  function buildGrid(){
+    grid.innerHTML = '';
+    flippedCount = 0;
+    triggered = false;
+    status.textContent = `0 / ${TRIGGER_AT} flipped`;
+    for(let i=0;i<TOTAL_CARDS;i++){
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="face back"></div>
+        <div class="face front">😂</div>
+      `;
+      card.addEventListener('click', () => onFlip(card));
+      grid.appendChild(card);
+    }
+  }
+
+  function onFlip(card){
+    if(card.classList.contains('flipped') || triggered) return;
+    card.classList.add('flipped');
+    flippedCount++;
+    status.textContent = `${flippedCount} / ${TRIGGER_AT} flipped`;
+    if(flippedCount >= TRIGGER_AT){
+      triggerDisco();
+    }
+  }
+
+  function triggerDisco(){
+    triggered = true;
+    document.body.classList.add('discoing');
+    discoLayer.classList.add('on');
+    message.classList.add('show');
+
+    player.currentTime = 0;
+    player.play().catch(()=>{});
+
+    // stop the hard flicker after a few seconds, keep the message up
+    setTimeout(() => {
+      discoLayer.classList.remove('on');
+      document.body.classList.remove('discoing');
+    }, 4000);
+  }
+
+  resetBtn.addEventListener('click', () => {
+    player.pause();
+    discoLayer.classList.remove('on');
+    document.body.classList.remove('discoing');
+    message.classList.remove('show');
+    buildGrid();
+  });
+
+  buildGrid();
+</script>
+</body>
+</html>
